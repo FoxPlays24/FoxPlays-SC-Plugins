@@ -7,7 +7,8 @@ This plugin is used for **fix an issue** where player tries to send a message in
 
 ## How it works
 
-Plugin parses your message and compares its length in ASCII and UTF-8 encodings, if it's not equal - game resends your fixed message to the server.
+Plugin parses your message and checks whether it contains ASCII characters, if not, game resends your corrected message to the server.
 
 ## Showcase
 
+https://github.com/FoxPlays24/FoxPlays-SC-Plugins/assets/48643589/bf2b8bec-1494-4cc0-b833-cc23e88299d8
