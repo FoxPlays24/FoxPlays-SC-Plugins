@@ -35,7 +35,7 @@ HookReturnCode ClientSay(SayParameters@ pParams)
 {
 	const string message = pParams.GetCommand();
 
-	// If message doesn't contain ASCII chars, don't duplicate it
+	// If message doesn't contain ASCII chars, duplicate it
 	if (!HasASCII(message))
 		SendMessage(pParams.GetPlayer(), message, pParams.GetSayType());
 	
