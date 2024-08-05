@@ -1,43 +1,67 @@
 void PluginInit()
 {
-	g_Module.ScriptInfo.SetAuthor("FoxPlays");
-	g_Module.ScriptInfo.SetContactInfo("https://github.com/FoxPlays24");
-	g_Hooks.RegisterHook(Hooks::Player::ClientSay, @ClientSay);
+    g_Module.ScriptInfo.SetAuthor("FoxPlays");
+    g_Module.ScriptInfo.SetContactInfo("https://github.com/FoxPlays24");
+    g_Hooks.RegisterHook(Hooks::Player::ClientSay, @ClientSay);
 }
 
 bool HasASCII(string msg)
 {
-	if(msg.Length() == 0) 
-		return true;
-		
-	for (uint i = 0; i < msg.Length(); i++)
+    if(msg.Length() == 0) 
+        return true;
+	
+    for (uint i = 0; i < msg.Length(); i++)
 	if (uint8(msg[i]) < 0x80 && uint8(msg[i]) != 0x20)
-		return true;
+	    return true;
 
-	return false;
+    return false;
 }
 
-// Got this part from "ChatSounds" plugin by wootguy (player_say func) and slightly modified it, thanks to him :)
-void SendMessage(CBaseEntity@ plr, string msg, ClientSayType isTeamMsg) {
-	string teamPrefix = isTeamMsg == ClientSayType::CLIENTSAY_SAYTEAM ? "(TEAM) " : "";
-	
-    NetworkMessage m(MSG_ALL, NetworkMessages::SayText, null);
-        m.WriteByte(plr.entindex());
-        m.WriteByte(2);
-        m.WriteString(teamPrefix + plr.pev.netname + ": " + msg + "\n");
-    m.End();
+void SendTeamMessage(CBasePlayer@ sender, string msg) {
+    g_EngineFuncs.ServerPrint(msg);
 
-    g_Game.AlertMessage(at_logged, "\"%1<%2><%3><player>\" say \"%4\"\n", plr.pev.netname, string(g_EngineFuncs.GetPlayerUserId(plr.edict())), g_EngineFuncs.GetPlayerAuthId(plr.edict()), msg);
-	g_EngineFuncs.ServerPrint(teamPrefix + plr.pev.netname + ": " + msg + "\n");
+    // Send message to all team members
+    for (int i = 1; i <= g_Engine.maxClients; i++) {
+    	CBasePlayer@ plr = g_PlayerFuncs.FindPlayerByIndex(i);
+
+	if (plr is null or !plr.IsConnected() or plr.Classify() != sender.Classify())
+	    continue;
+	
+	NetworkMessage m(MSG_ONE, NetworkMessages::SayText, plr.edict());
+	    m.WriteByte(sender.entindex());
+	    m.WriteByte(2);
+	    m.WriteString(msg);
+	m.End();
+    }
+}
+
+void SendMessage(CBasePlayer@ sender, string msg) {
+    g_EngineFuncs.ServerPrint(msg);
+
+    NetworkMessage m(MSG_ALL, NetworkMessages::SayText, null);
+        m.WriteByte(sender.entindex());
+        m.WriteByte(2);
+        m.WriteString(msg);
+    m.End();
 }
 
 HookReturnCode ClientSay(SayParameters@ pParams)
 {
-	const string message = pParams.GetCommand();
+    const string msg = pParams.GetCommand();
 
-	// If message doesn't contain ASCII chars, duplicate it
-	if (!HasASCII(message))
-		SendMessage(pParams.GetPlayer(), message, pParams.GetSayType());
-	
+    // If message contain ASCII chars, don't duplicate it
+    if (HasASCII(msg))
+        return HOOK_CONTINUE;
+    
+    CBasePlayer@ plr = pParams.GetPlayer();
+    ClientSayType sayType = pParams.GetSayType();
+    string fMsg = string(plr.pev.netname) + ": " + msg + "\n";
+
+    if (sayType == ClientSayType::CLIENTSAY_SAYTEAM) {
+        SendTeamMessage(plr, "(TEAM) " + fMsg);
 	return HOOK_CONTINUE;
+    }		 
+    
+    SendMessage(plr, fMsg);
+    return HOOK_CONTINUE;
 }
