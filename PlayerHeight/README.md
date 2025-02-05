@@ -2,7 +2,8 @@
 
 > Set your custom view height for playermodels on the server
 
-This plugin adds commands to your server to change the view height of each individual playermodel and saves it in the plugin config on the server you are playing on.
+This plugin adds commands to change the view height of each individual playermodel and adds customizable height limits to the server.
+All changes are saved in the plugin config, which is stored in `svencoop/scripts/plugins/store/` as `PlayerHeight.cfg`. 
 
 ## Commands
 
