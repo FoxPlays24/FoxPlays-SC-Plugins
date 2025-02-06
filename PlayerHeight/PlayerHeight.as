@@ -48,7 +48,7 @@ HookReturnCode PlayerPreThink(CBasePlayer@ pPlayer, uint &out uiDummy) {
   // Make ensure that player doesn't go out of bounds, I also tried to make max 
   // height clamp based on ceiling height, but it was too buggy :d
   if (!bDucking || iHeight <= -6)
-    pPlayer.pev.view_ofs.z = bDucking && iHeight < -8 ? g_iMinHeight+14 : iHeight;
+    pPlayer.pev.view_ofs.z = bDucking && iHeight < -8 ? HeightDef::Min+14 : iHeight;
 
   return HOOK_CONTINUE;
 }
@@ -120,33 +120,7 @@ void shl(const CCommand@ args) {
   const int16 iMin = args.FindIntArg(args[0], HeightDef::Min), 
               iMax = args.FindIntArg(args[1], HeightDef::Max),
               iDefault = args.FindIntArg(args[2], HeightDef::Default);
-
-  // Check minimum value bounds
-  if (iMin < HeightMax::Min) {
-    tellmsg(pPlayer, "Minimum height can't be greater than "+HeightMax::Min+"!");
-    return;
-  }
-
-  // Check maximum value bounds
-  if (iMax > HeightMax::Max) {
-    tellmsg(pPlayer, "Maximum height can't be greater than "+HeightMax::Max+"!");
-    return;
-  }  
-
-  // Check default value limits
-  if (iDefault < iMin || iDefault > iMax) {
-    tellmsg(pPlayer, "Default height "+iDefault+" is out of specified limits! Min: "+
-            iMin+", Max: "+iMax);
-    return;
-  }
-
-  g_iMinHeight = iMin;
-  g_iMaxHeight = iMax;
-  RefreshHeights();
-  g_iDefaultHeight = iDefault;
-
-  tellmsg("Server height limits are set to "+g_iMinHeight+" "+g_iMaxHeight+
-          " "+g_iDefaultHeight+" (min max default)");
+  SetServerHeightLimits(pPlayer, iMin, iMax, iDefault);
 }
 
 // Server Height Limits Reset
@@ -160,6 +134,36 @@ void shlr(const CCommand@ args) {
 
   tellmsg("Server height limits are set to defaults: "+HeightDef::Min+
           " "+HeightDef::Max+" "+HeightDef::Default+" (min max default)");
+}
+
+void SetServerHeightLimits(CBasePlayer@ &in pCaller, const int16 &in iMin, 
+                           const int16 &in iMax, const int16 &in iDefault) {
+  // Check minimum value bounds
+  if (iMin < HeightMax::Min) {
+    tellmsg(pCaller, "Minimum height can't be greater than "+HeightMax::Min+"!");
+    return;
+  }
+
+  // Check maximum value bounds
+  if (iMax > HeightMax::Max) {
+    tellmsg(pCaller, "Maximum height can't be greater than "+HeightMax::Max+"!");
+    return;
+  }  
+
+  // Check default value limits
+  if (iDefault < iMin || iDefault > iMax) {
+    tellmsg(pCaller, "Default height "+iDefault+" is out of specified limits! Min: "+
+            iMin+", Max: "+iMax);
+    return;
+  }
+
+  g_iMinHeight = iMin;
+  g_iMaxHeight = iMax;
+  RefreshHeights();
+  g_iDefaultHeight = iDefault;
+
+  tellmsg("Server height limits are set to "+g_iMinHeight+" "+g_iMaxHeight+
+          " "+g_iDefaultHeight+" (min max default)");
 }
 
 void RefreshHeights() {
@@ -183,12 +187,14 @@ void LoadConfig() {
   // Read height limits on line 1
   pFile.ReadLine(strOut);
   array<string>@ pArrSplit = strOut.Split(',');
-  strOut = "";
-  if (pArrSplit.size() != 3)
+  if (pArrSplit.size() < 3) {
     println("Can't read server height limits from config!");
-  else
-    g_ConCommandSystem.ServerCommand(".shl "+pArrSplit[0]+" "+pArrSplit[1]+" "+
-                                     pArrSplit[2]);
+  }
+  else {
+    println("Reading server height limits... " + strOut);
+    SetServerHeightLimits(null, atoi(pArrSplit[0]), atoi(pArrSplit[1]), atoi(pArrSplit[2]));
+  }
+  strOut = "";
 
   while (!pFile.EOFReached()) {
     pFile.ReadLine(strOut);
